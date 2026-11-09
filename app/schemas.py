@@ -45,3 +45,13 @@ class HealthResponse(BaseModel):
     baseline_available: bool
     transformer_available: bool
     llm_configured: bool
+
+
+class ChatRequest(BaseModel):
+    message: str = Field(..., min_length=1, description="User question")
+    context: str = Field(default="", description="Previous analysis result context")
+    lang: Optional[str] = Field(default="en", description="en or hi")
+
+
+class ChatResponse(BaseModel):
+    reply: str = Field(..., description="AI assistant reply")

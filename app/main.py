@@ -5,7 +5,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.config import APP_NAME, DEBUG, BASE_DIR, BASELINE_MODEL_DIR
+import requests
+
+from app.config import (
+    APP_NAME,
+    DEBUG,
+    BASE_DIR,
+    BASELINE_MODEL_DIR,
+    GEMINI_API_KEY,
+    GEMINI_MODEL,
+    GEMINI_BASE_URL,
+)
 from app.schemas import AnalyseRequest, AnalyseResponse, HealthResponse, RedFlag
 from app.preprocessing import preprocess
 from app.models.baseline import load_or_train, predict_proba
@@ -81,6 +91,82 @@ def health():
 
 
 # Helper text for action plan
+# ---- AI Help endpoint (Google Gemini) ----
+import json as _json
+
+
+def _gemini_reply(user_message: str, context: str, lang: str) -> str | None:
+    """Call Google Gemini API for AI help. Returns None if not configured."""
+    if not GEMINI_API_KEY:
+        return None
+    try:
+        import requests
+
+        url = (
+            f"{GEMINI_BASE_URL.rstrip('/')}/{GEMINI_MODEL}:generateContent"
+            f"?key={GEMINI_API_KEY}"
+        )
+        lang_instr = (
+            "Reply in Hindi (हिंदी)." if lang == "hi" else "Reply in English."
+        )
+        prompt = (
+            "You are a helpful cyber-fraud assistant for Indian users. "
+            + lang_instr
+            + "\n\nContext (previous analysis result):\n"
+            + context
+            + "\n\nUser question:\n"
+            + user_message
+            + "\n\nAnswer concisely and practically. If the user asks about safety, "
+            "mention cybercrime.gov.in and helpline 1930."
+        )
+
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.4,
+                "maxOutputTokens": 400,
+            },
+        }
+
+        resp = requests.post(url, json=payload, timeout=25)
+        resp.raise_for_status()
+        data = resp.json()
+        return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except Exception:
+        return None
+
+
+def _rule_based_help(user_message: str, lang: str) -> str:
+    """Fallback help when no AI key is configured."""
+    low = user_message.lower()
+    if lang == "hi":
+        if any(k in low for k in ["otp", "पिन", "पासवर्ड"]):
+            return "कभी भी अपना OTP, पिन या पासवर्ड किसी को न बताएं। बैंक कभी फोन पर OTP नहीं मांगता।"
+        if any(k in low for k in ["लिंक", "link", "क्लिक"]):
+            return "अज्ञात लिंक पर क्लिक न करें। यह फिशिंग हो सकता है।"
+        if any(k in low for k in ["रिपोर्ट", "शिकायत", "complaint", "report"]):
+            return "साइबर अपराध रिपोर्टिंग पोर्टल cybercrime.gov.in पर शिकायत करें या हेल्पलाइन 1930 पर कॉल करें।"
+        return "मैं आपकी कैसे मदद कर सकता हूं? संदेश, लिंक या स्कैम से जुड़ा कोई भी सवाल पूछें।"
+    else:
+        if any(k in low for k in ["otp", "pin", "password"]):
+            return "Never share your OTP, PIN, or password with anyone. Banks never ask for OTP over phone calls."
+        if any(k in low for k in ["link", "click"]):
+            return "Do not click on unknown or suspicious links — they may be phishing sites."
+        if any(k in low for k in ["complaint", "report", "cybercrime"]):
+            return "File a complaint at cybercrime.gov.in or call the cybercrime helpline 1930 (24x7)."
+    return "I can help you understand scam warnings, safety tips, and how to report cyber fraud. Ask me anything!"
+
+
+@app.post("/ai-help", response_model=ChatResponse, tags=["ai"])
+def ai_help(req: ChatRequest):
+    """AI assistant to answer user questions about scam detection results."""
+    context = req.context or ""
+    ai_reply = _gemini_reply(req.message, context, req.lang)
+    if ai_reply:
+        return ChatResponse(reply=ai_reply)
+    return ChatResponse(reply=_rule_based_help(req.message, req.lang))
+
+
 def _do_not_do(lang: str) -> str:
     if lang == "hi":
         return "लिंक पर क्लिक न करें\nOTP/पिन/पासवर्ड शेयर न करें\nअज्ञात नंबर पर कॉल न करें\nतुरंत कोई निर्णय न लें\nबैंक से सीधे संपर्क करें"

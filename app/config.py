@@ -26,6 +26,14 @@ LLM_API_KEY: str | None = os.getenv("LLM_API_KEY")
 LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1")
 LLM_MODEL: str = os.getenv("LLM_MODEL", "gpt-4o-mini")
 
+# Google Gemini AI help settings (optional)
+GEMINI_API_KEY: str | None = os.getenv("GEMINI_API_KEY")
+GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+GEMINI_BASE_URL: str = os.getenv(
+    "GEMINI_BASE_URL",
+    "https://generativelanguage.googleapis.com/v1beta/models",
+)
+
 # Scoring thresholds
 SAFE_THRESHOLD: float = 0.30
 SCAM_THRESHOLD: float = 0.70

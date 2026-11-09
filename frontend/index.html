@@ -19,6 +19,7 @@
     --muted: #94a3b8;
     --glass: rgba(255, 255, 255, 0.04);
     --border: rgba(255,255,255,0.08);
+    --ai-panel: #0f172a;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -28,6 +29,7 @@
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
+    overflow-x: hidden;
   }
 
   /* ============ LAYOUT ============ */
@@ -44,7 +46,7 @@
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    z-index: 10;
+    z-index: 20;
   }
 
   .sidebar-brand {
@@ -296,6 +298,125 @@
   }
   footer a { color: var(--primary); text-decoration: none; }
 
+  /* ============ AI CHAT PANEL ============ */
+  .ai-toggle {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(99,102,241,0.35);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .ai-toggle:hover { transform: scale(1.05); box-shadow: 0 12px 28px rgba(99,102,241,0.45); }
+  .ai-toggle:active { transform: scale(0.95); }
+
+  .ai-panel {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 360px;
+    max-height: 80vh;
+    background: var(--ai-panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    z-index: 1100;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    animation: slideUp 0.3s ease;
+  }
+  .ai-panel.open { display: flex; }
+
+  .ai-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+  }
+  .ai-header .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
+  .ai-header h3 { font-size: 15px; font-weight: 700; margin: 0; color: var(--text); }
+  .ai-header p { font-size: 11px; color: var(--muted); margin: 2px 0 0; }
+  .ai-close {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+  }
+  .ai-close:hover { color: var(--text); }
+
+  .ai-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ai-msg {
+    display: flex;
+    gap: 10px;
+    max-width: 90%;
+  }
+  .ai-msg.ai { align-self: flex-start; }
+  .ai-msg.user { align-self: flex-end; flex-direction: row-reverse; }
+  .ai-msg.bubble {
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .ai-msg.ai .ai-msg.bubble { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); }
+  .ai-msg.user .ai-msg.bubble { background: var(--primary); color: #fff; }
+  .ai-msg .sender { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+
+  .ai-input {
+    display: flex;
+    gap: 8px;
+    padding: 12px 18px;
+    background: rgba(0,0,0,0.2);
+    border-top: 1px solid var(--border);
+  }
+  .ai-input input {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    padding: 10px 14px;
+    font-size: 13px;
+    outline: none;
+  }
+  .ai-input input::placeholder { color: var(--muted); }
+  .ai-input button {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 0 16px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .ai-input button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  @keyframes slideUp { from { opacity:0; transform:translateY(20px);} to {opacity:1;transform:translateY(0);} }
+
   /* Mobile */
   @media (max-width: 768px) {
     .app-layout { flex-direction: column; height: auto; }
@@ -304,6 +425,7 @@
     .grid { grid-template-columns: 1fr; }
     .stats-row { grid-template-columns: repeat(2, 1fr); }
     .top-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+    .ai-panel { width: calc(100% - 32px); right: 16px; left: 16px; bottom: 80px; }
   }
 </style>
 </head>
@@ -573,6 +695,29 @@ Congratulations! You won a lottery. Click here."></textarea>
   </main>
 </div>
 
+<!-- AI Help Panel -->
+<button class="ai-toggle" id="aiToggle" title="Ask AI assistant">🤖</button>
+<div class="ai-panel" id="aiPanel">
+  <div class="ai-header">
+    <div>
+      <span class="dot"></span>
+      <h3>AI Assistant</h3>
+      <p>Ask about scam results</p>
+    </div>
+    <button class="ai-close" id="aiClose">✕</button>
+  </div>
+  <div class="ai-messages" id="aiMessages">
+    <div class="ai-msg ai">
+      <div class="sender">AI</span>
+      <div class="ai-msg bubble">Hello! Ask me anything about scam detection, red flags, safety tips, or how to report cyber fraud.</div>
+    </div>
+  </div>
+  <div class="ai-input">
+    <input type="text" id="aiInput" placeholder="Ask a question about this analysis…" />
+    <button id="aiSend">Send</button>
+  </div>
+</div>
+
 <script>
 const API_BASE = "";
 const messageEl = document.getElementById("message");
@@ -584,6 +729,16 @@ const loader = document.getElementById("loader");
 const errorEl = document.getElementById("error");
 const resultEl = document.getElementById("result");
 const emptyEl = document.getElementById("empty");
+
+// AI elements
+const aiToggle = document.getElementById("aiToggle");
+const aiPanel = document.getElementById("aiPanel");
+const aiClose = document.getElementById("aiClose");
+const aiMessages = document.getElementById("aiMessages");
+const aiInput = document.getElementById("aiInput");
+const aiSend = document.getElementById("aiSend");
+
+let lastAnalysisData = null;
 
 // Auto-detect Hindi/Hinglish (Devanagari script)
 function detectLang(text) {
@@ -651,6 +806,7 @@ function renderResult(data) {
   clearError();
   resultEl.style.display = "block";
   emptyEl.style.display = "none";
+  lastAnalysisData = data;
 
   const pct = Math.round((data.score || 0) * 100);
   setRiskCircle(pct, data.label || "Safe");
@@ -662,7 +818,7 @@ function renderResult(data) {
   const urls = data.urls || [];
   document.getElementById("metaUrls").textContent = urls.length ? urls.join(", ") : "—";
 
-  // Signal breakdown - map backend flags to UI signals
+  // Signal breakdown
   const sigMap = {
     urgency_pressure: { id: "sig-urgency", bar: "bar-urgency" },
     unknown_payment_link: { id: "sig-link", bar: "bar-link" },
@@ -707,7 +863,7 @@ function renderResult(data) {
     </div>
   `;
 
-  // Action plan - split multiline strings into list items
+  // Action plan
   document.getElementById("notDoList").innerHTML = (data.do_not_do || "").split("\n").filter(Boolean).map(t => `<li>${escapeHtml(t.trim())}</li>`).join("");
   document.getElementById("doList").innerHTML = (data.do_this || "").split("\n").filter(Boolean).map(t => `<li>${escapeHtml(t.trim())}</li>`).join("");
 
@@ -755,6 +911,71 @@ clearBtn.addEventListener("click", () => {
   clearError();
   resultEl.style.display = "none";
   emptyEl.style.display = "block";
+  lastAnalysisData = null;
+});
+
+// ---------- AI Assistant Chat ----------
+aiToggle.addEventListener("click", () => {
+  aiPanel.classList.toggle("open");
+  if (aiPanel.classList.contains("open")) aiInput.focus();
+});
+aiClose.addEventListener("click", () => aiPanel.classList.remove("open"));
+
+function addAiMsg(text, sender) {
+  const div = document.createElement("div");
+  div.className = `ai-msg ${sender}`;
+  const bubble = document.createElement("div");
+  bubble.className = "ai-msg bubble";
+  bubble.textContent = text;
+  const senderDiv = document.createElement("div");
+  senderDiv.className = "sender";
+  senderDiv.textContent = sender === "ai" ? "AI" : "You";
+  if (sender === "ai") {
+    div.appendChild(senderDiv);
+    div.appendChild(bubble);
+  } else {
+    div.appendChild(bubble);
+    div.appendChild(senderDiv);
+  }
+  aiMessages.appendChild(div);
+  aiMessages.scrollTop = aiMessages.scrollHeight;
+}
+
+async function sendAiMsg() {
+  const val = aiInput.value.trim();
+  if (!val) return;
+  aiInput.value = "";
+  addAiMsg(val, "user");
+  aiSend.disabled = true;
+
+  try {
+    const context = lastAnalysisData
+      ? JSON.stringify({
+          label: lastAnalysisData.label,
+          score: lastAnalysisData.score,
+          flags: lastAnalysisData.flags,
+          explanation: lastAnalysisData.explanation,
+        }, null, 2)
+      : "No analysis done yet.";
+    const res = await fetch("/ai-help", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: val, context, lang: langEl.value || "en" }),
+    });
+    if (!res.ok) throw new Error("AI error");
+    const data = await res.json();
+    addAiMsg(data.reply || "Sorry, I couldn't understand that.", "ai");
+  } catch (e) {
+    addAiMsg("AI is not configured. Ask about OTP, links, or cybercrime reporting instead.", "ai");
+  } finally {
+    aiSend.disabled = false;
+    aiInput.focus();
+  }
+}
+
+aiSend.addEventListener("click", sendAiMsg);
+aiInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); sendAiMsg(); }
 });
 </script>
 
