@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PS Fraud Detector — Scam Check Dashboard</title>
-<meta name="description" content="Hinglish-aware scam detection with risk percentage & actionable advice">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -52,6 +50,7 @@
     box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3);
     margin-bottom: 20px;
     animation: fadeInUp 0.7s ease;
+    min-height: 100vh;
   }
 
   .input-group { margin-bottom: 16px; }
@@ -88,20 +87,23 @@
 
   .score-wrap { text-align: center; margin-bottom: 20px; }
   .score-circle {
-    width: 140px; height: 140px; border-radius: 50%; margin: 0 auto 16px;
+    width: 150px; height: 150px; border-radius: 50%; margin: 0 auto 16px;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    border: 8px solid rgba(255,255,255,0.08); position: relative;
+    position: relative;
+    border: 10px solid rgba(255,255,255,0.08);
   }
-  .score-circle::after {
-    content: ""; position: absolute; inset: 0; border-radius: 50%;
-    border: 6px solid transparent; transform: rotate(-45deg); transition: 0.8s ease;
+  .score-circle-bg {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 10px solid transparent;
+    transform: rotate(-45deg);
+    transition: 1s ease;
   }
-  .score-circle.safe::after { border-top-color: var(--success); }
-  .score-circle.suspicious::after { border-top-color: var(--warning); }
-  .score-circle.scam::after { border-top-color: var(--danger); }
+  .score-circle.safe .score-circle-bg { border-top-color: var(--success); }
+  .score-circle.suspicious .score-circle-bg { border-top-color: var(--warning); }
+  .score-circle.scam .score-circle-bg { border-top-color: var(--danger); }
 
-  .score-val { font-size: 40px; font-weight: 800; margin-top: -10px; }
-  .score-pct { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .score-val { font-size: 42px; font-weight: 800; z-index: 2; margin-top: -8px; }
+  .score-pct { font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; z-index: 2; }
 
   .label-badge {
     display: inline-block; padding: 8px 20px; border-radius: 30px; font-size: 14px;
@@ -170,7 +172,7 @@
   @media (max-width: 480px) {
     body { padding: 12px; }
     .card { padding: 18px; border-radius: 16px; }
-    .score-circle { width: 110px; height: 110px; }
+    .score-circle { width: 120px; height: 120px; }
     .score-val { font-size: 32px; }
     .advice-grid { grid-template-columns: 1fr; }
   }
@@ -216,6 +218,7 @@ Congratulations! You won a lottery. Click here."></textarea>
     <div id="result" class="result">
       <div class="score-wrap">
         <div class="score-circle" id="scoreCircle">
+          <div class="score-circle-bg" id="scoreCircleBg"></div>
           <div class="score-val" id="scoreVal">0.00</div>
           <div class="score-pct" id="scorePct">Risk: 0%</div>
         </div>
@@ -225,8 +228,6 @@ Congratulations! You won a lottery. Click here."></textarea>
         <div class="meta-row"><span>Language</span><span id="metaLang">—</span></div>
         <div class="meta-row" id="urlsRow" style="display:none;"><span>URLs</span><span id="metaUrls"></span></div>
       </div>
-
-      <canvas id="riskChart" width="300" height="150" style="max-width:100%; height:auto; margin:20px auto; display:block;"></canvas>
 
       <div class="flags-title">Red Flags Found</div>
       <div class="flags" id="flags">
@@ -276,7 +277,7 @@ const errorEl = document.getElementById("error");
 const resultEl = document.getElementById("result");
 const emptyEl = document.getElementById("empty");
 
-let riskChart = null;
+let rotateDeg = 0;
 
 // Auto-detect Hindi/Hinglish (Devanagari script)
 function detectLang(text) {
@@ -300,24 +301,34 @@ function showError(msg) {
 
 function clearError() { errorEl.style.display = "none"; }
 
-function setLabel(label) {
+function setLabel(label, pct) {
   const badge = document.getElementById("labelBadge");
   const circle = document.getElementById("scoreCircle");
+  const circleBg = document.getElementById("scoreCircleBg");
   badge.className = "label-badge";
   circle.className = "score-circle";
   const l = (label || "").toLowerCase();
   if (l === "safe") {
     badge.classList.add("label-safe"); circle.classList.add("safe");
     badge.textContent = "Safe ✅";
+    circleBg.style.borderTopColor = "#16a34a";
+    rotateDeg = pct * 3.6;
   } else if (l === "suspicious") {
     badge.classList.add("label-suspicious"); circle.classList.add("suspicious");
     badge.textContent = "Suspicious ⚠️";
+    circleBg.style.borderTopColor = "#d97706";
+    rotateDeg = pct * 3.6;
   } else if (l === "scam") {
     badge.classList.add("label-scam"); circle.classList.add("scam");
     badge.textContent = "Scam 🚨";
+    circleBg.style.borderTopColor = "#dc2626";
+    rotateDeg = pct * 3.6;
   } else {
     badge.textContent = "—";
+    circleBg.style.borderTopColor = "transparent";
+    rotateDeg = 0;
   }
+  circleBg.style.transform = `rotate(${rotateDeg - 45}deg)`;
 }
 
 function renderResult(data) {
@@ -325,8 +336,9 @@ function renderResult(data) {
   resultEl.style.display = "block";
   emptyEl.style.display = "none";
 
-  setLabel(data.label);
   const pct = Math.round((data.score || 0) * 100);
+  setLabel(data.label, pct);
+
   document.getElementById("scoreVal").textContent = (data.score || 0).toFixed(2);
   document.getElementById("scorePct").textContent = `Risk: ${pct}%`;
   document.getElementById("metaML").textContent = data.ml_probability != null ? (data.ml_probability * 100).toFixed(0) + "%" : "—";
@@ -338,34 +350,6 @@ function renderResult(data) {
   const metaUrls = document.getElementById("metaUrls");
   if (urls.length) { urlsRow.style.display = "flex"; metaUrls.textContent = urls.join(", "); }
   else { urlsRow.style.display = "none"; }
-
-  // Chart - fixed canvas sizing
-  const canvas = document.getElementById("riskChart");
-  canvas.width = 300;
-  canvas.height = 150;
-  const ctx = canvas.getContext("2d");
-  if (riskChart) riskChart.destroy();
-  const pctSafe = 100 - pct;
-  riskChart = new Chart(ctx, {
-    type: "doughnut",
-    data: {
-      labels: ["Safe", "Risk"],
-      datasets: [{
-        data: [pctSafe, pct],
-        backgroundColor: pct > 70 ? ["#16a34a", "#dc2626"] : pct > 30 ? ["#16a34a", "#d97706"] : ["#16a34a", "#16a34a"],
-        borderWidth: 0,
-        cutout: "75%"
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: { display: false },
-        tooltip: { enabled: false }
-      }
-    }
-  });
 
   // Flags
   const flagsContainer = document.getElementById("flags");
@@ -432,7 +416,6 @@ clearBtn.addEventListener("click", () => {
   clearError();
   resultEl.style.display = "none";
   emptyEl.style.display = "block";
-  if (riskChart) { riskChart.destroy(); riskChart = null; }
 });
 </script>
 
