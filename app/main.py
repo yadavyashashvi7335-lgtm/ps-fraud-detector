@@ -80,6 +80,33 @@ def health():
     )
 
 
+def get_do_not_do(flags: list[RedFlag], lang: str) -> str:
+    if lang == "hi":
+        return ("• लिंक पर क्लिक न करें • OTP/पिन/पासवर्ड शेयर न करें • अज्ञात नंबर पर कॉल न करें • "
+                "तुरंत कोई निर्णय न लें • बैंक से सीधे संपर्क करें")
+    else:
+        return ("• Do NOT click any link • Do NOT share OTP/PIN/password • Do NOT call unknown numbers • "
+                "Do NOT take urgent decisions • Contact your bank directly")
+
+
+def get_do_this(lang: str) -> str:
+    if lang == "hi":
+        return ("• संदिग्ध संदेश को डिलीट करें • साइबर अपराध पोर्टल पर रिपोर्ट करें • बैंक को सूचित करें • "
+                "स्क्रीनशॉट सुरक्षित रखें")
+    else:
+        return ("• Delete the suspicious message • Report at cybercrime.gov.in • Inform your bank • "
+                "Keep screenshots as evidence")
+
+
+def get_complaint_info(lang: str) -> str:
+    if lang == "hi":
+        return ("साइबर अपराध रिपोर्टिंग पोर्टल: cybercrime.gov.in\nसाइबर हेल्पलाइन: 1930 (24x7)\n"
+                "राष्ट्रीय साइबर अपराध रिपोर्टिंग पोर्टल पर शिकायत दर्ज कराएं।")
+    else:
+        return ("Cyber Crime Reporting Portal: cybercrime.gov.in\nCyber Helpline: 1930 (24x7)\n"
+                "File a complaint at the National Cyber Crime Reporting Portal.")
+
+
 @app.post("/analyse", response_model=AnalyseResponse, tags=["analyse"])
 def analyse(req: AnalyseRequest):
     if not req.text or not req.text.strip():
@@ -100,7 +127,18 @@ def analyse(req: AnalyseRequest):
 
     # 3. Rule layer: red flags
     flags: list[RedFlag] = detect_red_flags(req.text, urls)
-    rule_score = compute_rule_score(flags)
+
+    # Check safe indicators to reduce false positives for legitimate bank messages
+    low = req.text.lower()
+    safe_indicators = [
+        "credited", "debited", "balance", "statement", "invoice", "receipt",
+        "payment successful", "transaction", "account balance", "available balance",
+        "जमा", "राशि", "शेष", "बैलेंस", "स्टेटमेंट", "भुगतान सफल",
+        "लेन-देन", "आपका खाता", "धन्यवाद", "सादर", "जमा हुआ", "क्रेडिट", "डेबिट",
+    ]
+    has_safe = any(p in low for p in safe_indicators)
+
+    rule_score = compute_rule_score(flags, has_safe=has_safe)
 
     # 4. Combined score + label
     from app.config import ML_WEIGHT, RULE_WEIGHT
@@ -110,6 +148,7 @@ def analyse(req: AnalyseRequest):
 
     # 5. Language selection
     lang = req.lang if req.lang in ("en", "hi") else None
+    lang = lang or "en"
 
     # 6. Build response with placeholder explanation (filled by explainer)
     response = AnalyseResponse(
@@ -120,16 +159,18 @@ def analyse(req: AnalyseRequest):
         flags=flags,
         explanation="",  # filled below
         next_step="",
-        language=lang or "en",
+        language=lang,
         processed_text=processed_text,
         urls=urls,
+        risk_percentage=round(score * 100, 1),
+        do_not_do=get_do_not_do(flags, lang),
+        do_this=get_do_this(lang),
+        complaint_info=get_complaint_info(lang),
     )
 
     # 7. LLM / template explanation
-    explanation, next_step = generate_explanation(response, lang or "en")
+    explanation, next_step = generate_explanation(response, lang)
     response.explanation = explanation
     response.next_step = next_step
-    response.language = lang or "en"
 
     return response
-

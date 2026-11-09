@@ -30,6 +30,11 @@ class AnalyseResponse(BaseModel):
     language: str = Field(..., description="Language used for explanation ('en' or 'hi')")
     processed_text: str = Field(..., description="Cleaned/transliterated text")
     urls: List[str] = Field(default_factory=list, description="Extracted URLs")
+    # New dashboard fields
+    risk_percentage: float = Field(default=0.0, description="Risk percentage 0-100")
+    do_not_do: str = Field(default="", description="What NOT to do")
+    do_this: str = Field(default="", description="What TO do")
+    complaint_info: str = Field(default="", description="Complaint helpline info")
 
 
 class HealthResponse(BaseModel):
