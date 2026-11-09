@@ -16,7 +16,14 @@ from app.config import (
     GEMINI_MODEL,
     GEMINI_BASE_URL,
 )
-from app.schemas import AnalyseRequest, AnalyseResponse, HealthResponse, RedFlag
+from app.schemas import (
+    AnalyseRequest,
+    AnalyseResponse,
+    ChatRequest,
+    ChatResponse,
+    HealthResponse,
+    RedFlag,
+)
 from app.preprocessing import preprocess
 from app.models.baseline import load_or_train, predict_proba
 from app.models.transformer import TransformerScamClassifier
