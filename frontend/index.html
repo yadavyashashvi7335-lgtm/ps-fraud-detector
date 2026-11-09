@@ -429,27 +429,27 @@ Congratulations! You won a lottery. Click here."></textarea>
           <div class="signal-item">
             <span class="signal-name">Urgency / pressure</span>
             <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--warning);" id="bar-urgency"></div></div>
-            <span class="signal-val" id="sig-urgency">0</span>
+            <span class="signal-val" id="sig-urgency">+0</span>
           </div>
           <div class="signal-item">
             <span class="signal-name">Suspicious link</span>
             <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--warning);" id="bar-link"></div></div>
-            <span class="signal-val" id="sig-link">0</span>
+            <span class="signal-val" id="sig-link">+0</span>
           </div>
           <div class="signal-item">
             <span class="signal-name">Asks for payment</span>
             <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--warning);" id="bar-pay"></div></div>
-            <span class="signal-val" id="sig-pay">0</span>
+            <span class="signal-val" id="sig-pay">+0</span>
           </div>
           <div class="signal-item">
             <span class="signal-name">Asks for OTP / PIN</span>
             <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--danger);" id="bar-otp"></div></div>
-            <span class="signal-val" id="sig-otp">0</span>
+            <span class="signal-val" id="sig-otp">+0</span>
           </div>
           <div class="signal-item">
             <span class="signal-name">Impersonation</span>
             <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--danger);" id="bar-imp"></div></div>
-            <span class="signal-val" id="sig-imp">0</span>
+            <span class="signal-val" id="sig-imp">+0</span>
           </div>
         </div>
       </div>
@@ -460,7 +460,7 @@ Congratulations! You won a lottery. Click here."></textarea>
       <div class="card">
         <div class="card-title">Red flags found</div>
         <div class="flag-list" id="flagsList">
-          <div style="font-size:13px;color:var(--muted);">No strong indicators</div>
+          <div style="font-size:13px;color:var(--muted);padding:12px;">No strong indicators</div>
         </div>
         <div style="margin-top:14px;font-size:12px;color:var(--muted);" id="explanationBox"></div>
       </div>
@@ -481,9 +481,9 @@ Congratulations! You won a lottery. Click here."></textarea>
           <span class="action-title">WHAT TO DO</span>
           <ul class="action-list" id="doList">
             <li>Delete the suspicious message</li>
-            <li>Contact your bank directly</li>
-            <li>Keep screenshots as evidence</li>
             <li>Report at cybercrime.gov.in</li>
+            <li>Inform your bank</li>
+            <li>Keep screenshots as evidence</li>
           </ul>
         </div>
       </div>
@@ -643,7 +643,6 @@ function setRiskCircle(pct, label) {
     badge.textContent = "Scam";
   }
 
-  // Animate the arc (CSS transform)
   const deg = Math.min(pct, 100) * 3.6;
   bg.style.transform = `rotate(${deg - 45}deg)`;
 }
@@ -663,17 +662,17 @@ function renderResult(data) {
   const urls = data.urls || [];
   document.getElementById("metaUrls").textContent = urls.length ? urls.join(", ") : "—";
 
-  // Signal breakdown
+  // Signal breakdown - map backend flags to UI signals
   const sigMap = {
-    urgency_pressure: "sig-urgency",
-    unknown_payment_link: "sig-link",
-    fake_kyc: "sig-pay",
-    otp_pin_request: "sig-otp",
-    lookalike_domain: "sig-imp"
+    urgency_pressure: { id: "sig-urgency", bar: "bar-urgency" },
+    unknown_payment_link: { id: "sig-link", bar: "bar-link" },
+    fake_kyc: { id: "sig-pay", bar: "bar-pay" },
+    otp_pin_request: { id: "sig-otp", bar: "bar-otp" },
+    lookalike_domain: { id: "sig-imp", bar: "bar-imp" }
   };
   Object.keys(sigMap).forEach(key => {
-    const el = document.getElementById(sigMap[key]);
-    const bar = document.getElementById("bar-" + key);
+    const el = document.getElementById(sigMap[key].id);
+    const bar = document.getElementById(sigMap[key].bar);
     const flag = data.flags ? data.flags.find(f => f.flag === key) : null;
     const weight = flag ? Math.round(flag.weight * 100) : 0;
     if (el) el.textContent = "+" + weight;
@@ -708,7 +707,7 @@ function renderResult(data) {
     </div>
   `;
 
-  // Action plan
+  // Action plan - split multiline strings into list items
   document.getElementById("notDoList").innerHTML = (data.do_not_do || "").split("\n").filter(Boolean).map(t => `<li>${escapeHtml(t.trim())}</li>`).join("");
   document.getElementById("doList").innerHTML = (data.do_this || "").split("\n").filter(Boolean).map(t => `<li>${escapeHtml(t.trim())}</li>`).join("");
 

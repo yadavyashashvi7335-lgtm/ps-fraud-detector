@@ -80,31 +80,23 @@ def health():
     )
 
 
-def get_do_not_do(flags: list[RedFlag], lang: str) -> str:
+# Helper text for action plan
+def _do_not_do(lang: str) -> str:
     if lang == "hi":
-        return ("• लिंक पर क्लिक न करें • OTP/पिन/पासवर्ड शेयर न करें • अज्ञात नंबर पर कॉल न करें • "
-                "तुरंत कोई निर्णय न लें • बैंक से सीधे संपर्क करें")
-    else:
-        return ("• Do NOT click any link • Do NOT share OTP/PIN/password • Do NOT call unknown numbers • "
-                "Do NOT take urgent decisions • Contact your bank directly")
+        return "लिंक पर क्लिक न करें\nOTP/पिन/पासवर्ड शेयर न करें\nअज्ञात नंबर पर कॉल न करें\nतुरंत कोई निर्णय न लें\nबैंक से सीधे संपर्क करें"
+    return "Do not click any link\nDo not share OTP, PIN or password\nDo not call unknown numbers\nDo not take urgent decisions\nContact your bank directly"
 
 
-def get_do_this(lang: str) -> str:
+def _do_this(lang: str) -> str:
     if lang == "hi":
-        return ("• संदिग्ध संदेश को डिलीट करें • साइबर अपराध पोर्टल पर रिपोर्ट करें • बैंक को सूचित करें • "
-                "स्क्रीनशॉट सुरक्षित रखें")
-    else:
-        return ("• Delete the suspicious message • Report at cybercrime.gov.in • Inform your bank • "
-                "Keep screenshots as evidence")
+        return "संदिग्ध संदेश को डिलीट करें\nसाइबर अपराध पोर्टल पर रिपोर्ट करें\nबैंक को सूचित करें\nस्क्रीनशॉट सुरक्षित रखें"
+    return "Delete the suspicious message\nReport at cybercrime.gov.in\nInform your bank\nKeep screenshots as evidence"
 
 
-def get_complaint_info(lang: str) -> str:
+def _complaint_info(lang: str) -> str:
     if lang == "hi":
-        return ("साइबर अपराध रिपोर्टिंग पोर्टल: cybercrime.gov.in\nसाइबर हेल्पलाइन: 1930 (24x7)\n"
-                "राष्ट्रीय साइबर अपराध रिपोर्टिंग पोर्टल पर शिकायत दर्ज कराएं।")
-    else:
-        return ("Cyber Crime Reporting Portal: cybercrime.gov.in\nCyber Helpline: 1930 (24x7)\n"
-                "File a complaint at the National Cyber Crime Reporting Portal.")
+        return "साइबर अपराध रिपोर्टिंग पोर्टल: cybercrime.gov.in\nसाइबर हेल्पलाइन: 1930 (24x7)\nराष्ट्रीय साइबर अपराध रिपोर्टिंग पोर्टल पर शिकायत दर्ज कराएं।"
+    return "Cyber Crime Reporting Portal: cybercrime.gov.in\nCyber Helpline: 1930 (24x7)\nFile a complaint at the National Cyber Crime Reporting Portal."
 
 
 @app.post("/analyse", response_model=AnalyseResponse, tags=["analyse"])
@@ -115,7 +107,7 @@ def analyse(req: AnalyseRequest):
     # 1. Preprocess: clean + transliterate Hinglish + extract URLs
     processed_text, urls = preprocess(req.text)
 
-    # 2. ML classifier: scam probability (transformer preferred, baseline fallback)
+    # 2. ML classifier: scam probability
     ml_probability = 0.5
     transformer = _state["transformer"]
     if transformer and transformer.available:
@@ -126,9 +118,9 @@ def analyse(req: AnalyseRequest):
         ml_probability = predict_proba(_state["baseline"], req.text)
 
     # 3. Rule layer: red flags
-    flags: list[RedFlag] = detect_red_flags(req.text, urls)
+    flags = detect_red_flags(req.text, urls)
 
-    # Check safe indicators to reduce false positives for legitimate bank messages
+    # Safe indicators check for legitimate bank messages
     low = req.text.lower()
     safe_indicators = [
         "credited", "debited", "balance", "statement", "invoice", "receipt",
@@ -150,22 +142,22 @@ def analyse(req: AnalyseRequest):
     lang = req.lang if req.lang in ("en", "hi") else None
     lang = lang or "en"
 
-    # 6. Build response with placeholder explanation (filled by explainer)
+    # 6. Build response
     response = AnalyseResponse(
         label=label,
         score=round(score, 4),
         ml_probability=round(ml_probability, 4),
         rule_score=round(rule_score, 4),
         flags=flags,
-        explanation="",  # filled below
+        explanation="",
         next_step="",
         language=lang,
         processed_text=processed_text,
         urls=urls,
         risk_percentage=round(score * 100, 1),
-        do_not_do=get_do_not_do(flags, lang),
-        do_this=get_do_this(lang),
-        complaint_info=get_complaint_info(lang),
+        do_not_do=_do_not_do(lang),
+        do_this=_do_this(lang),
+        complaint_info=_complaint_info(lang),
     )
 
     # 7. LLM / template explanation
