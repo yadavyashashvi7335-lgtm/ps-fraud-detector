@@ -19,7 +19,6 @@
     --muted: #94a3b8;
     --glass: rgba(255, 255, 255, 0.04);
     --border: rgba(255,255,255,0.08);
-    --ai-panel: #0f172a;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -85,6 +84,11 @@
     padding: 24px;
     position: relative;
   }
+
+  /* Page sections */
+  .page { display: none; animation: fadeIn 0.3s ease; }
+  .page.active { display: block; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px);} to {opacity:1;transform:translateY(0);} }
 
   /* Header */
   .top-header {
@@ -286,6 +290,47 @@
   .badge-scam { background: rgba(220,38,38,0.15); color: var(--danger); }
   .badge-safe { background: rgba(22,163,74,0.15); color: var(--success); }
 
+  /* Scan history list */
+  .history-list { display: flex; flex-direction: column; gap: 10px; }
+  .history-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 14px; border-radius: 10px; background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.04); font-size: 13px;
+  }
+  .history-item .msg { flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-item .meta { font-size: 11px; color: var(--muted); white-space: nowrap; }
+
+  /* Settings */
+  .setting-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text);
+  }
+  .setting-item:last-child { border-bottom: none; }
+  .setting-item select, .setting-item input {
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); padding: 6px 10px; font-size: 13px;
+  }
+
+  /* Scam awareness */
+  .awareness-card {
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; margin-bottom: 16px;
+  }
+  .awareness-card h4 { color: var(--primary); margin-bottom: 8px; font-size: 15px; }
+  .awareness-card ul { list-style: none; padding: 0; margin: 0; }
+  .awareness-card li { font-size: 13px; color: var(--text); margin-bottom: 6px; padding-left: 18px; position: relative; }
+  .awareness-card li::before { content: "⚠️"; position: absolute; left: 0; }
+
+  /* Reports */
+  .reports-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .report-box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+
+  /* Charts */
+  .chart-wrap { height: 160px; margin-bottom: 12px; position: relative; }
+  .chart-legend { display: flex; gap: 16px; font-size: 11px; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
+  .chart-legend .item { display: flex; align-items: center; gap: 6px; }
+  .chart-legend .dot { width: 10px; height: 10px; border-radius: 50%; }
+
   /* Empty state */
   .empty {
     text-align: center; color: var(--muted); padding: 60px 20px; font-size: 15px;
@@ -436,22 +481,22 @@
   <aside class="sidebar">
     <div class="sidebar-brand">PS Fraud Detector</div>
     <nav>
-      <div class="sidebar-item active">
+      <div class="sidebar-item active" data-page="dashboard">
         <span class="icon">📊</span> Dashboard
       </div>
-      <div class="sidebar-item">
+      <div class="sidebar-item" data-page="analyze">
         <span class="icon">💬</span> Analyze message
       </div>
-      <div class="sidebar-item">
+      <div class="sidebar-item" data-page="history">
         <span class="icon">🕒</span> Scan history
       </div>
-      <div class="sidebar-item">
+      <div class="sidebar-item" data-page="reports">
         <span class="icon">📋</span> Reports
       </div>
-      <div class="sidebar-item">
+      <div class="sidebar-item" data-page="awareness">
         <span class="icon">⚠️</span> Scam awareness
       </div>
-      <div class="sidebar-item">
+      <div class="sidebar-item" data-page="settings">
         <span class="icon">⚙️</span> Settings
       </div>
     </nav>
@@ -459,239 +504,391 @@
 
   <!-- Main content -->
   <main class="main">
-    <header class="top-header">
-      <div>
-        <h1>Scam analysis dashboard</h1>
-        <p>Hinglish-aware scam detection with risk percentage and action plan</p>
-      </div>
-      <div class="status-bar">
-        <div class="pill">
-          <span class="dot"></span> Backend: online
+    <!-- Dashboard Page -->
+    <section id="page-dashboard" class="page active">
+      <header class="top-header">
+        <div>
+          <h1>Scam analysis dashboard</h1>
+          <p>Hinglish-aware scam detection with risk percentage and action plan</p>
         </div>
-        <div class="pill">
-          Language <select id="lang" style="background:transparent;border:none;color:inherit;font:inherit;padding:0;margin-left:4px;">
-            <option value="auto">Auto Detect</option>
-            <option value="en">English</option>
-            <option value="hi">हिंदी</option>
-          </select>
+        <div class="status-bar">
+          <div class="pill">
+            <span class="dot"></span> Backend: online
+          </div>
+          <div class="pill">
+            Language <select id="lang" style="background:transparent;border:none;color:inherit;font:inherit;padding:0;margin-left:4px;">
+              <option value="auto">Auto Detect</option>
+              <option value="en">English</option>
+              <option value="hi">हिंदी</option>
+            </select>
+          </div>
+        </div>
+      </header>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Messages scanned</div>
+          <div class="stat-value" id="stat-scanned">1,284</div>
+          <div class="stat-sub">Sample data</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Scams detected</div>
+          <div class="stat-value stat-val-red" id="stat-scams">312</div>
+          <div class="stat-sub">High risk, 70% and above</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Suspicious</div>
+          <div class="stat-value stat-val-yellow" id="stat-suspicious">407</div>
+          <div class="stat-sub">Medium risk, 40 to 69%</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Safe</div>
+          <div class="stat-value stat-val-green" id="stat-safe">565</div>
+          <div class="stat-sub">Low risk, below 40%</div>
         </div>
       </div>
-    </header>
 
-    <!-- Stats -->
-    <div class="stats-row">
-      <div class="stat-card">
-        <div class="stat-label">Messages scanned</div>
-        <div class="stat-value" id="stat-scanned">1,284</div>
-        <div class="stat-sub">Sample data</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Scams detected</div>
-        <div class="stat-value stat-val-red" id="stat-scams">312</div>
-        <div class="stat-sub">High risk, 70% and above</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Suspicious</div>
-        <div class="stat-value stat-val-yellow" id="stat-suspicious">407</div>
-        <div class="stat-sub">Medium risk, 40 to 69%</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Safe</div>
-        <div class="stat-value stat-val-green" id="stat-safe">565</div>
-        <div class="stat-sub">Low risk, below 40%</div>
-      </div>
-    </div>
-
-    <div class="grid">
-      <!-- Paste message -->
-      <div class="card" style="grid-column: span 1;">
-        <div class="card-title">Paste suspicious message or link</div>
-        <div class="input-group">
-          <textarea id="message" rows="5" placeholder="e.g. आपका खाता ब्लॉक हो जाएगा, तुरंत OTP भेजें
+      <div class="grid">
+        <div class="card" style="grid-column: span 1;">
+          <div class="card-title">Paste suspicious message or link</div>
+          <div class="input-group">
+            <textarea id="message" rows="5" placeholder="e.g. आपका खाता ब्लॉक हो जाएगा, तुरंत OTP भेजें
 Congratulations! You won a lottery. Click here."></textarea>
+          </div>
+          <div class="input-group">
+            <label>Language</label>
+            <select id="msg-lang">
+              <option value="auto">Auto Detect</option>
+              <option value="en">English</option>
+              <option value="hi">हिंदी</option>
+            </select>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary btn-full" id="analyseBtn">Analyze message</button>
+            <button class="btn btn-ghost btn-full" id="clearBtn">Clear</button>
+          </div>
+          <div id="error" style="color:#fca5a5;font-size:12px;margin-top:8px;display:none;"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Risk score</div>
+          <div class="risk-wrap">
+            <div class="risk-circle" id="riskCircle">
+              <div class="risk-circle-bg" id="riskCircleBg"></div>
+              <div class="risk-score-val" id="riskVal">0%</div>
+              <div class="risk-score-pct" id="riskPct">risk</div>
+            </div>
+            <div class="risk-label-badge" id="riskBadge" style="background:rgba(22,163,74,0.15);color:#16a34a;border:1px solid rgba(22,163,74,0.3);">Safe</div>
+          </div>
+          <div class="meta-grid">
+            <div class="meta-row2"><span>ML score</span><span id="mlScore">—</span></div>
+            <div class="meta-row2"><span>Rule score</span><span id="ruleScore">—</span></div>
+            <div class="meta-row2"><span>Language</span><span id="metaLang">—</span></div>
+            <div class="meta-row2"><span>URLs found</span><span id="metaUrls">—</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Signal breakdown</div>
+          <div class="signal-row">
+            <div class="signal-item">
+              <span class="signal-name">Urgency / pressure</span>
+              <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--warning);" id="bar-urgency"></div></div>
+              <span class="signal-val" id="sig-urgency">+0</span>
+            </div>
+            <div class="signal-item">
+              <span class="signal-name">Suspicious link</span>
+              <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--warning);" id="bar-link"></div></div>
+              <span class="signal-val" id="sig-link">+0</span>
+            </div>
+            <div class="signal-item">
+              <span class="signal-name">Asks for payment</span>
+              <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--warning);" id="bar-pay"></div></div>
+              <span class="signal-val" id="sig-pay">+0</span>
+            </div>
+            <div class="signal-item">
+              <span class="signal-name">Asks for OTP / PIN</span>
+              <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--danger);" id="bar-otp"></div></div>
+              <span class="signal-val" id="sig-otp">+0</span>
+            </div>
+            <div class="signal-item">
+              <span class="signal-name">Impersonation</span>
+              <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--danger);" id="bar-imp"></div></div>
+              <span class="signal-val" id="sig-imp">+0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="card-title">Red flags found</div>
+          <div class="flag-list" id="flagsList">
+            <div style="font-size:13px;color:var(--muted);padding:12px;">No strong indicators</div>
+          </div>
+          <div style="margin-top:14px;font-size:12px;color:var(--muted);" id="explanationBox"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Action plan</div>
+          <div class="action-box action-notdo">
+            <span class="action-title">WHAT NOT TO DO</span>
+            <ul class="action-list" id="notDoList">
+              <li>Do not click any link</li>
+              <li>Do not share OTP, PIN or password</li>
+              <li>Do not call unknown numbers</li>
+              <li>Do not take urgent decisions</li>
+            </ul>
+          </div>
+          <div class="action-box action-do">
+            <span class="action-title">WHAT TO DO</span>
+            <ul class="action-list" id="doList">
+              <li>Delete the suspicious message</li>
+              <li>Report at cybercrime.gov.in</li>
+              <li>Inform your bank</li>
+              <li>Keep screenshots as evidence</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">File a complaint</div>
+          <div class="complaint-box">
+            <span class="complaint-title">Cyber Crime Reporting Portal</span>
+            <div class="complaint-item"><span>Website</span><span class="label">cybercrime.gov.in</span></div>
+          </div>
+          <div class="complaint-box">
+            <span class="complaint-title">Cyber helpline, 24×7</span>
+            <div class="complaint-item"><span>Number</span><span class="label" style="font-weight:700;color:var(--text);">1930</span></div>
+          </div>
+          <div class="tip-box">
+            Report within the first few hours if money was lost.
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="card">
+          <div class="card-title">Scans over the last 7 days</div>
+          <div class="chart-wrap" id="lineChart">
+            <canvas id="lineCanvas" width="400" height="160" style="width:100%;height:100%;"></canvas>
+          </div>
+          <div class="chart-legend">
+            <div class="item"><div class="dot" style="background:#ef4444;"></div> Scams</div>
+            <div class="item"><div class="dot" style="background:#3b82f6;"></div> All scans</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Scam types</div>
+          <div class="chart-wrap" id="donutChart">
+            <canvas id="donutCanvas" width="200" height="200" style="width:100%;height:auto;max-width:200px;display:block;margin:0 auto;"></canvas>
+          </div>
+          <div class="chart-legend" style="justify-content:center;">
+            <div class="item"><div class="dot" style="background:#3b82f6;"></div> Phishing link</div>
+            <div class="item"><div class="dot" style="background:#ef4444;"></div> OTP fraud</div>
+            <div class="item"><div class="dot" style="background:#f59e0b;"></div> Lottery</div>
+            <div class="item"><div class="dot" style="background:#22c55e;"></div> KYC</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Recent scans</div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Message</th><th style="width:18%;text-align:right;">Risk</th><th style="width:20%;">Result</th></tr>
+              </thead>
+              <tbody id="recentScans">
+                <tr>
+                  <td>Order fine, shorturl link</td>
+                  <td style="text-align:right;">33%</td>
+                  <td><span class="badge-pill badge-suspicious">Suspicious</span></td>
+                </tr>
+                <tr>
+                  <td>Account blocked, send OTP</td>
+                  <td style="text-align:right;">86%</td>
+                  <td><span class="badge-pill badge-scam">Scam</span></td>
+                </tr>
+                <tr>
+                  <td>KBC lottery fee</td>
+                  <td style="text-align:right;">91%</td>
+                  <td><span class="badge-pill badge-scam">Scam</span></td>
+                </tr>
+                <tr>
+                  <td>Bank debit alert</td>
+                  <td style="text-align:right;">8%</td>
+                  <td><span class="badge-pill badge-safe">Safe</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        Sample data shown for design. Report real cyber fraud at <a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a> or call <b>1930</b>.
+      </footer>
+    </section>
+
+    <!-- Analyze Page (same as dashboard but focused) -->
+    <section id="page-analyze" class="page">
+      <header class="top-header">
+        <div>
+          <h1>Analyze Message</h1>
+          <p>Paste any suspicious SMS, WhatsApp message or link to check for scam indicators</p>
+        </div>
+        <div class="status-bar">
+          <div class="pill">
+            <span class="dot"></span> Backend: online
+          </div>
+        </div>
+      </header>
+
+      <div class="card" style="max-width: 600px;">
+        <div class="input-group">
+          <label for="analyzeMessage">Message or link</label>
+          <textarea id="analyzeMessage" rows="6" placeholder="Paste the full message here..."></textarea>
         </div>
         <div class="input-group">
           <label>Language</label>
-          <select id="msg-lang">
+          <select id="analyzeLang">
             <option value="auto">Auto Detect</option>
             <option value="en">English</option>
             <option value="hi">हिंदी</option>
           </select>
         </div>
         <div class="btn-row">
-          <button class="btn btn-primary btn-full" id="analyseBtn">Analyze message</button>
-          <button class="btn btn-ghost btn-full" id="clearBtn">Clear</button>
+          <button class="btn btn-primary btn-full" id="analyzeBtn">Analyze Now</button>
         </div>
-        <div id="error" style="color:#fca5a5;font-size:12px;margin-top:8px;display:none;"></div>
+        <div id="analyzeError" style="color:#fca5a5;font-size:12px;margin-top:8px;display:none;"></div>
+        <div id="analyzeResult" style="display:none; margin-top:20px;"></div>
       </div>
+    </section>
 
-      <!-- Risk score -->
+    <!-- Scan History Page -->
+    <section id="page-history" class="page">
+      <header class="top-header">
+        <div>
+          <h1>Scan History</h1>
+          <p>Previously analyzed messages stored locally</p>
+        </div>
+      </header>
       <div class="card">
-        <div class="card-title">Risk score</div>
-        <div class="risk-wrap">
-          <div class="risk-circle" id="riskCircle">
-            <div class="risk-circle-bg" id="riskCircleBg"></div>
-            <div class="risk-score-val" id="riskVal">0%</div>
-            <div class="risk-score-pct" id="riskPct">risk</div>
-          </div>
-          <div class="risk-label-badge" id="riskBadge" style="background:rgba(22,163,74,0.15);color:#16a34a;border:1px solid rgba(22,163,74,0.3);">Safe</div>
-        </div>
-        <div class="meta-grid">
-          <div class="meta-row2"><span>ML score</span><span id="mlScore">—</span></div>
-          <div class="meta-row2"><span>Rule score</span><span id="ruleScore">—</span></div>
-          <div class="meta-row2"><span>Language</span><span id="metaLang">—</span></div>
-          <div class="meta-row2"><span>URLs found</span><span id="metaUrls">—</span></div>
+        <div id="historyList" class="history-list">
+          <div style="font-size:13px;color:var(--muted);padding:20px;">No scans yet. Analyze a message to see history here.</div>
         </div>
       </div>
+    </section>
 
-      <!-- Signal breakdown -->
+    <!-- Reports Page -->
+    <section id="page-reports" class="page">
+      <header class="top-header">
+        <div>
+          <h1>Reports</h1>
+          <p>Summary of scam detection statistics</p>
+        </div>
+      </header>
+      <div class="reports-grid">
+        <div class="report-box">
+          <div style="font-size:12px;color:var(--muted);">Total Scams Detected</div>
+          <div style="font-size:28px;font-weight:800;color:var(--danger);">312</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">High risk (70%+)</div>
+        </div>
+        <div class="report-box">
+          <div style="font-size:12px;color:var(--muted);">Suspicious</div>
+          <div style="font-size:28px;font-weight:800;color:var(--warning);">407</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">Medium risk (40-69%)</div>
+        </div>
+        <div class="report-box">
+          <div style="font-size:12px;color:var(--muted);">Safe Messages</div>
+          <div style="font-size:28px;font-weight:800;color:var(--success);">565</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">Low risk (below 40%)</div>
+        </div>
+        <div class="report-box">
+          <div style="font-size:12px;color:var(--muted);">Total Scanned</div>
+          <div style="font-size:28px;font-weight:800;color:var(--text);">1,284</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px;">Sample data</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Scam Awareness Page -->
+    <section id="page-awareness" class="page">
+      <header class="top-header">
+        <div>
+          <h1>Scam Awareness</h1>
+          <p>Learn about common scam types and how to protect yourself</p>
+        </div>
+      </header>
+      <div class="awareness-card">
+        <h4>🔗 Fake KYC Scams</h4>
+        <ul>
+          <li>Scammers send fake KYC update links via SMS/WhatsApp</li>
+          <li>They claim your account will be blocked if you don't verify</li>
+          <li>Real banks never ask for OTP/PIN via SMS or links</li>
+        </ul>
+      </div>
+      <div class="awareness-card">
+        <h4>💰 UPI Refund Scams</h4>
+        <li>Fake messages claiming you won a refund or cashback</li>
+        <li>They ask you to click a link and enter your UPI PIN</li>
+        <li>UPI PIN is never needed to receive money</li>
+      </div>
+      <div class="awareness-card">
+        <h4>🎟️ Lottery / Job Offer Scams</h4>
+        <li>Congratulations messages claiming you won a lottery</li>
+        <li>Work-from-home job offers requiring registration fees</li>
+        <li>If it sounds too good to be true, it is a scam</li>
+      </div>
+      <div class="awareness-card">
+        <h4>🛡️ How to Stay Safe</h4>
+        <li>Never share OTP, PIN, CVV, or passwords with anyone</li>
+        <li>Don't click on shortened or unknown links</li>
+        <li>Verify sender identity before responding</li>
+        <li>Report suspicious messages at cybercrime.gov.in</li>
+      </div>
+    </section>
+
+    <!-- Settings Page -->
+    <section id="page-settings" class="page">
+      <header class="top-header">
+        <div>
+          <h1>Settings</h1>
+          <p>Configure application preferences</p>
+        </div>
+      </header>
       <div class="card">
-        <div class="card-title">Signal breakdown</div>
-        <div class="signal-row">
-          <div class="signal-item">
-            <span class="signal-name">Urgency / pressure</span>
-            <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--warning);" id="bar-urgency"></div></div>
-            <span class="signal-val" id="sig-urgency">+0</span>
-          </div>
-          <div class="signal-item">
-            <span class="signal-name">Suspicious link</span>
-            <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--warning);" id="bar-link"></div></div>
-            <span class="signal-val" id="sig-link">+0</span>
-          </div>
-          <div class="signal-item">
-            <span class="signal-name">Asks for payment</span>
-            <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--warning);" id="bar-pay"></div></div>
-            <span class="signal-val" id="sig-pay">+0</span>
-          </div>
-          <div class="signal-item">
-            <span class="signal-name">Asks for OTP / PIN</span>
-            <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--danger);" id="bar-otp"></div></div>
-            <span class="signal-val" id="sig-otp">+0</span>
-          </div>
-          <div class="signal-item">
-            <span class="signal-name">Impersonation</span>
-            <div class="signal-bar"><div class="signal-bar-fill" style="width:0%;background:var(--danger);" id="bar-imp"></div></div>
-            <span class="signal-val" id="sig-imp">+0</span>
-          </div>
+        <div class="setting-item">
+          <span>Default language</span>
+          <select id="settingLang">
+            <option value="en">English</option>
+            <option value="hi">हिंदी</option>
+          </select>
         </div>
+        <div class="setting-item">
+          <span>AI Assistant</span>
+          <select id="settingAI">
+            <option value="auto">Auto (Gemini / Rule-based)</option>
+            <option value="gemini">Google Gemini AI</option>
+            <option value="rule">Rule-based only</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <span>Theme</span>
+          <select id="settingTheme">
+            <option value="dark">Dark Mode</option>
+            <option value="light">Light Mode</option>
+          </select>
+        </div>
+        <div class="setting-item">
+          <span>Data storage</span>
+          <span style="color:var(--muted);">LocalStorage (browser)</span>
+        </div>
+        <button class="btn btn-primary btn-full" id="saveSettings">Save Settings</button>
       </div>
-    </div>
+    </section>
 
-    <div class="grid grid-2">
-      <!-- Red flags -->
-      <div class="card">
-        <div class="card-title">Red flags found</div>
-        <div class="flag-list" id="flagsList">
-          <div style="font-size:13px;color:var(--muted);padding:12px;">No strong indicators</div>
-        </div>
-        <div style="margin-top:14px;font-size:12px;color:var(--muted);" id="explanationBox"></div>
-      </div>
-
-      <!-- Action plan -->
-      <div class="card">
-        <div class="card-title">Action plan</div>
-        <div class="action-box action-notdo">
-          <span class="action-title">WHAT NOT TO DO</span>
-          <ul class="action-list" id="notDoList">
-            <li>Do not click any link</li>
-            <li>Do not share OTP, PIN or password</li>
-            <li>Do not call unknown numbers</li>
-            <li>Do not take urgent decisions</li>
-          </ul>
-        </div>
-        <div class="action-box action-do">
-          <span class="action-title">WHAT TO DO</span>
-          <ul class="action-list" id="doList">
-            <li>Delete the suspicious message</li>
-            <li>Report at cybercrime.gov.in</li>
-            <li>Inform your bank</li>
-            <li>Keep screenshots as evidence</li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- File complaint -->
-      <div class="card">
-        <div class="card-title">File a complaint</div>
-        <div class="complaint-box">
-          <span class="complaint-title">Cyber Crime Reporting Portal</span>
-          <div class="complaint-item"><span>Website</span><span class="label">cybercrime.gov.in</span></div>
-        </div>
-        <div class="complaint-box">
-          <span class="complaint-title">Cyber helpline, 24×7</span>
-          <div class="complaint-item"><span>Number</span><span class="label" style="font-weight:700;color:var(--text);">1930</span></div>
-        </div>
-        <div class="tip-box">
-          Report within the first few hours if money was lost.
-        </div>
-      </div>
-    </div>
-
-    <div class="grid grid-3">
-      <!-- Scans chart -->
-      <div class="card">
-        <div class="card-title">Scans over the last 7 days</div>
-        <div class="chart-wrap" id="lineChart">
-          <canvas id="lineCanvas" width="400" height="160" style="width:100%;height:100%;"></canvas>
-        </div>
-        <div class="chart-legend">
-          <div class="item"><div class="dot" style="background:#ef4444;"></div> Scams</div>
-          <div class="item"><div class="dot" style="background:#3b82f6;"></div> All scans</div>
-        </div>
-      </div>
-
-      <!-- Scam types donut -->
-      <div class="card">
-        <div class="card-title">Scam types</div>
-        <div class="chart-wrap" id="donutChart">
-          <canvas id="donutCanvas" width="200" height="200" style="width:100%;height:auto;max-width:200px;display:block;margin:0 auto;"></canvas>
-        </div>
-        <div class="chart-legend" style="justify-content:center;">
-          <div class="item"><div class="dot" style="background:#3b82f6;"></div> Phishing link</div>
-          <div class="item"><div class="dot" style="background:#ef4444;"></div> OTP fraud</div>
-          <div class="item"><div class="dot" style="background:#f59e0b;"></div> Lottery</div>
-          <div class="item"><div class="dot" style="background:#22c55e;"></div> KYC</div>
-        </div>
-      </div>
-
-      <!-- Recent scans -->
-      <div class="card">
-        <div class="card-title">Recent scans</div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>Message</th><th style="width:18%;text-align:right;">Risk</th><th style="width:20%;">Result</th></tr>
-            </thead>
-            <tbody id="recentScans">
-              <tr>
-                <td>Order fine, shorturl link</td>
-                <td style="text-align:right;">33%</td>
-                <td><span class="badge-pill badge-suspicious">Suspicious</span></td>
-              </tr>
-              <tr>
-                <td>Account blocked, send OTP</td>
-                <td style="text-align:right;">86%</td>
-                <td><span class="badge-pill badge-scam">Scam</span></td>
-              </tr>
-              <tr>
-                <td>KBC lottery fee</td>
-                <td style="text-align:right;">91%</td>
-                <td><span class="badge-pill badge-scam">Scam</span></td>
-              </tr>
-              <tr>
-                <td>Bank debit alert</td>
-                <td style="text-align:right;">8%</td>
-                <td><span class="badge-pill badge-safe">Safe</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <footer>
-      Sample data shown for design. Report real cyber fraud at <a href="https://cybercrime.gov.in" target="_blank" rel="noopener">cybercrime.gov.in</a> or call <b>1930</b>.
-    </footer>
   </main>
 </div>
 
@@ -708,7 +905,7 @@ Congratulations! You won a lottery. Click here."></textarea>
   </div>
   <div class="ai-messages" id="aiMessages">
     <div class="ai-msg ai">
-      <div class="sender">AI</span>
+      <div class="sender">AI</div>
       <div class="ai-msg bubble">Hello! Ask me anything about scam detection, red flags, safety tips, or how to report cyber fraud.</div>
     </div>
   </div>
@@ -720,27 +917,26 @@ Congratulations! You won a lottery. Click here."></textarea>
 
 <script>
 const API_BASE = "";
-const messageEl = document.getElementById("message");
-const langEl = document.getElementById("lang");
-const msgLangEl = document.getElementById("msg-lang");
-const analyseBtn = document.getElementById("analyseBtn");
-const clearBtn = document.getElementById("clearBtn");
-const loader = document.getElementById("loader");
-const errorEl = document.getElementById("error");
-const resultEl = document.getElementById("result");
-const emptyEl = document.getElementById("empty");
 
-// AI elements
-const aiToggle = document.getElementById("aiToggle");
-const aiPanel = document.getElementById("aiPanel");
-const aiClose = document.getElementById("aiClose");
-const aiMessages = document.getElementById("aiMessages");
-const aiInput = document.getElementById("aiInput");
-const aiSend = document.getElementById("aiSend");
+// ---------- Navigation ----------
+const sidebarItems = document.querySelectorAll(".sidebar-item");
+const pages = document.querySelectorAll(".page");
 
-let lastAnalysisData = null;
+function showPage(pageId) {
+  pages.forEach(p => p.classList.remove("active"));
+  sidebarItems.forEach(s => s.classList.remove("active"));
+  document.getElementById("page-" + pageId).classList.add("active");
+  document.querySelector('.sidebar-item[data-page="' + pageId + '"]').classList.add("active");
+  window.scrollTo(0, 0);
+}
 
-// Auto-detect Hindi/Hinglish (Devanagari script)
+sidebarItems.forEach(item => {
+  item.addEventListener("click", () => {
+    showPage(item.getAttribute("data-page"));
+  });
+});
+
+// ---------- API Helpers ----------
 function detectLang(text) {
   const devanagari = /[\u0900-\u097F]/;
   if (devanagari.test(text)) return "hi";
@@ -748,25 +944,32 @@ function detectLang(text) {
 }
 
 function setLoading(loading) {
-  loader.style.display = loading ? "block" : "none";
-  analyseBtn.disabled = loading;
-  analyseBtn.textContent = loading ? "Analyzing…" : "Analyze message";
+  const btn = document.getElementById("analyseBtn") || document.getElementById("analyzeBtn");
+  if (btn) {
+    btn.disabled = loading;
+    btn.textContent = loading ? "Analyzing…" : "Analyze message";
+  }
 }
 
-function showError(msg) {
-  errorEl.textContent = msg;
-  errorEl.style.display = "block";
-  resultEl.style.display = "none";
-  emptyEl.style.display = "none";
+function showError(msg, elId) {
+  const el = document.getElementById(elId || "error");
+  if (el) {
+    el.textContent = msg;
+    el.style.display = "block";
+  }
 }
 
-function clearError() { errorEl.style.display = "none"; }
+function clearError(elId) {
+  const el = document.getElementById(elId || "error");
+  if (el) el.style.display = "none";
+}
 
 function escapeHtml(s) {
   if (s == null) return "";
   return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 }
 
+// ---------- Risk Circle ----------
 function setRiskCircle(pct, label) {
   const circle = document.getElementById("riskCircle");
   const bg = document.getElementById("riskCircleBg");
@@ -802,11 +1005,15 @@ function setRiskCircle(pct, label) {
   bg.style.transform = `rotate(${deg - 45}deg)`;
 }
 
+// ---------- Render Result ----------
 function renderResult(data) {
   clearError();
-  resultEl.style.display = "block";
-  emptyEl.style.display = "none";
-  lastAnalysisData = data;
+  const resultEl = document.getElementById("result");
+  const emptyEl = document.getElementById("empty");
+  if (resultEl) {
+    resultEl.style.display = "block";
+    emptyEl.style.display = "none";
+  }
 
   const pct = Math.round((data.score || 0) * 100);
   setRiskCircle(pct, data.label || "Safe");
@@ -872,25 +1079,75 @@ function renderResult(data) {
     <div style="font-size:12px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(data.complaint_info || "")}</div>
   `;
 
-  resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  // Save to history
+  saveToHistory(data);
+
+  if (resultEl) resultEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
+// ---------- History (localStorage) ----------
+function getHistory() {
+  try {
+    return JSON.parse(localStorage.getItem("ps_fraud_history") || "[]");
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveToHistory(data) {
+  const history = getHistory();
+  const entry = {
+    id: Date.now(),
+    text: data.processed_text || "",
+    label: data.label,
+    score: data.score,
+    lang: data.language,
+    time: new Date().toLocaleString()
+  };
+  history.unshift(entry);
+  if (history.length > 50) history.pop();
+  localStorage.setItem("ps_fraud_history", JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const container = document.getElementById("historyList");
+  if (!container) return;
+  const history = getHistory();
+  container.innerHTML = "";
+  if (history.length === 0) {
+    container.innerHTML = `<div style="font-size:13px;color:var(--muted);padding:20px;">No scans yet. Analyze a message to see history here.</div>`;
+    return;
+  }
+  history.forEach(h => {
+    const badgeClass = h.label.toLowerCase() === "scam" ? "badge-scam" : h.label.toLowerCase() === "suspicious" ? "badge-suspicious" : "badge-safe";
+    const el = document.createElement("div");
+    el.className = "history-item";
+    el.innerHTML = `
+      <div class="msg">${escapeHtml(h.text)}</div>
+      <div class="meta">
+        <span class="badge-pill ${badgeClass}">${h.label}</span> ${Math.round((h.score||0)*100)}%<br>
+        ${h.lang.toUpperCase()} • ${h.time}
+      </div>
+    `;
+    container.appendChild(el);
+  });
+}
+
+// ---------- Analyze (main page) ----------
 async function analyse() {
-  const text = messageEl.value.trim();
-  if (!text) { showError("Please paste a message first."); return; }
-  clearError();
-  resultEl.style.display = "none";
-  emptyEl.style.display = "none";
+  const msgEl = document.getElementById("message") || document.getElementById("analyzeMessage");
+  const langSel = document.getElementById("msg-lang") || document.getElementById("analyzeLang");
+  const text = msgEl.value.trim();
+  if (!text) { showError("Please paste a message first.", "error"); return; }
+  clearError("error");
+  const resultEl = document.getElementById("result");
+  const emptyEl = document.getElementById("empty");
+  if (resultEl) { resultEl.style.display = "none"; emptyEl.style.display = "none"; }
   setLoading(true);
 
-  let selectedLang = langEl.value;
-  if (selectedLang === "auto") {
-    selectedLang = detectLang(text);
-    langEl.value = selectedLang;
-    msgLangEl.value = selectedLang;
-  } else {
-    msgLangEl.value = selectedLang;
-  }
+  let selectedLang = langSel.value;
+  if (selectedLang === "auto") selectedLang = detectLang(text);
 
   try {
     const res = await fetch("/analyse", {
@@ -901,25 +1158,29 @@ async function analyse() {
     const data = await res.json();
     renderResult(data);
   } catch (e) {
-    showError("Cannot reach backend. Is it running?");
+    showError("Cannot reach backend. Is it running?", "error");
   } finally { setLoading(false); }
 }
 
-analyseBtn.addEventListener("click", analyse);
-clearBtn.addEventListener("click", () => {
-  messageEl.value = "";
-  clearError();
-  resultEl.style.display = "none";
-  emptyEl.style.display = "block";
-  lastAnalysisData = null;
+document.getElementById("analyseBtn")?.addEventListener("click", analyse);
+document.getElementById("analyzeBtn")?.addEventListener("click", analyse);
+document.getElementById("clearBtn")?.addEventListener("click", () => {
+  document.getElementById("message")?.value = "";
+  document.getElementById("analyzeMessage")?.value = "";
+  clearError("error");
+  document.getElementById("result")?.style.display = "none";
+  document.getElementById("empty")?.style.display = "block";
+  document.getElementById("analyzeResult")?.style.display = "none";
 });
 
-// ---------- AI Assistant Chat ----------
-aiToggle.addEventListener("click", () => {
-  aiPanel.classList.toggle("open");
-  if (aiPanel.classList.contains("open")) aiInput.focus();
-});
-aiClose.addEventListener("click", () => aiPanel.classList.remove("open"));
+// ---------- AI Assistant ----------
+const aiToggle = document.getElementById("aiToggle");
+const aiPanel = document.getElementById("aiPanel");
+const aiClose = document.getElementById("aiClose");
+const aiMessages = document.getElementById("aiMessages");
+const aiInput = document.getElementById("aiInput");
+const aiSend = document.getElementById("aiSend");
+let lastAnalysisData = null;
 
 function addAiMsg(text, sender) {
   const div = document.createElement("div");
@@ -950,17 +1211,11 @@ async function sendAiMsg() {
 
   try {
     const context = lastAnalysisData
-      ? JSON.stringify({
-          label: lastAnalysisData.label,
-          score: lastAnalysisData.score,
-          flags: lastAnalysisData.flags,
-          explanation: lastAnalysisData.explanation,
-        }, null, 2)
+      ? JSON.stringify({ label: lastAnalysisData.label, score: lastAnalysisData.score, flags: lastAnalysisData.flags, explanation: lastAnalysisData.explanation }, null, 2)
       : "No analysis done yet.";
     const res = await fetch("/ai-help", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: val, context, lang: langEl.value || "en" }),
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: val, context, lang: document.getElementById("lang")?.value || "en" })
     });
     if (!res.ok) throw new Error("AI error");
     const data = await res.json();
@@ -973,9 +1228,34 @@ async function sendAiMsg() {
   }
 }
 
-aiSend.addEventListener("click", sendAiMsg);
-aiInput.addEventListener("keydown", (e) => {
+aiToggle?.addEventListener("click", () => {
+  aiPanel.classList.toggle("open");
+  if (aiPanel.classList.contains("open")) aiInput.focus();
+});
+aiClose?.addEventListener("click", () => aiPanel.classList.remove("open"));
+aiSend?.addEventListener("click", sendAiMsg);
+aiInput?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") { e.preventDefault(); sendAiMsg(); }
+});
+
+// ---------- Settings ----------
+document.getElementById("saveSettings")?.addEventListener("click", () => {
+  const lang = document.getElementById("settingLang")?.value;
+  const ai = document.getElementById("settingAI")?.value;
+  const theme = document.getElementById("settingTheme")?.value;
+  localStorage.setItem("ps_settings", JSON.stringify({ lang, ai, theme }));
+  alert("Settings saved!");
+});
+
+// Load settings on startup
+window.addEventListener("DOMContentLoaded", () => {
+  try {
+    const s = JSON.parse(localStorage.getItem("ps_settings") || "{}");
+    if (s.lang) document.getElementById("settingLang")?.value = s.lang;
+    if (s.ai) document.getElementById("settingAI")?.value = s.ai;
+    if (s.theme) document.getElementById("settingTheme")?.value = s.theme;
+  } catch (e) {}
+  renderHistory();
 });
 </script>
 
